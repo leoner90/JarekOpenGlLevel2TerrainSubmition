@@ -1,5 +1,4 @@
 // FRAGMENT SHADER
-
 #version 330
 
 in vec4 color;
@@ -9,22 +8,26 @@ out vec4 outColor;
 uniform sampler2D texture0;
 in vec2 texCoord0;
  
-
-
-
 //Per Fragment light every pixel calculates the light NOMRAL MAPS WORKS ONLY PER FRAGMENT LIGHT
 in vec4 position;
-in vec3 normal;
-
+//in vec3 normal;
 
 // Matrices
 uniform mat4 matrixView;
-
 
 // Materials - can be one material instead of 3 
 uniform vec3 materialDiffuse;
 uniform vec3 materialSpecular;
 uniform float shininess; // addition to specular light
+
+//NORMAL map
+uniform sampler2D textureNormal;
+in mat3 matrixTangent;
+vec3 normal;
+
+//fog
+uniform vec3 fogColour;
+in float fogFactor;
 
 
 struct POINT
@@ -33,8 +36,8 @@ struct POINT
 	vec3 diffuse;
 	vec3 specular;
 };
-uniform POINT lightPoint , lightPoint2;
 
+uniform POINT lightPoint, lightPoint2, lightPoint3, lightPoint4, lightPoint5, lightPoint6, lightPoint7, lightPoint8, lightPoint9, lightPoint10;
 
 vec4 PointLight(POINT light)
 {
@@ -50,20 +53,37 @@ vec4 PointLight(POINT light)
 	float RdotV = dot(R, V);
 	color += vec4(materialSpecular * light.specular * pow(max(RdotV, 0), shininess), 1);
 
-
 	//ATTENUATION qadratic light drops 4 times
 	float dist = length(matrixView * vec4(light.position, 1) - position);
+	float DropRating = 0.01;
 	//float att = 1 / (att_const + att_linear * dist + att_quadratic * dist * dist);
-	float att = 1 / (0.01 * dist * dist);
-
-
+	float att = 1 / (DropRating * dist * dist);
+ 
 	return color * att;
 }
 
-
 void main(void) 
 {
-  outColor = color;
-  outColor += PointLight(lightPoint); // per fragment light
-  outColor *= texture(texture0, texCoord0);
+	//new Normal Map
+	normal = 2.0 * texture(textureNormal, texCoord0).xyz - vec3(1.0, 1.0, 1.0);
+	normal = normalize(matrixTangent * normal);
+
+	outColor = color;
+	// for fragment light
+	outColor += PointLight(lightPoint);
+	outColor += PointLight(lightPoint2);
+	outColor += PointLight(lightPoint3);
+	outColor += PointLight(lightPoint4);
+	outColor += PointLight(lightPoint5);
+	outColor += PointLight(lightPoint6);
+	outColor += PointLight(lightPoint7);
+	outColor += PointLight(lightPoint8);
+	outColor += PointLight(lightPoint9);
+	outColor += PointLight(lightPoint10);
+
+	//texture multyplier
+	outColor *= texture(texture0, texCoord0);
+  
+  //fog
+	outColor = mix(vec4(fogColour, 1), outColor, fogFactor);
 }

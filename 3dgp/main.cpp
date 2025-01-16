@@ -4,8 +4,6 @@
 #include <GL/glut.h>
 #include <GL/freeglut_ext.h>
 
-
-
 // Include GLM core features
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
@@ -22,16 +20,20 @@ C3dglTerrain terrain, road;
 // 3D Models
 C3dglModel cristmasTree;
 C3dglModel streetLamp;
+C3dglModel house;
 
-//skyBox
-C3dglSkyBox skyboxStaticObjects; // load 6 diferent images
+//skyBoxes
 C3dglSkyBox skybox;
+C3dglSkyBox NightSkybox;
 
 //textures
 GLuint idTexSnow;
 GLuint idTexRoad;
 GLuint idTexNone; // null TExture
 
+//normal
+GLuint idTexNormal;
+GLuint idTexNormalICe;
 
 // The View Matrix
 mat4 matrixView;
@@ -45,29 +47,39 @@ float _fov = 60.f;		// field of view (zoom)
 // GLSL Program
 C3dglProgram program;
 
-//For Rotation  
-float angle = 0;
-float dayNightTimer = 0;
+
+//Day Night Regime
+bool isItNight = false;
+bool IsTimerReseted = false;
 bool isPointLightOff = false;
+float timeAccelerator = 1;// time contrroll
 
-//daytime
-float timeOfDay = 0;
+//day night global vars
+float dayFraction = 0;
+float DayRotationAngle = 0;
+ 
+//sunset effect
+float sunsetColorDivider = 1;
+
+//lampControll 0 = auto, 1 = manual ON, 2 = Manual off
+int AreLeftLampsOff = 0;
+int AreRightLampsOff = 0;
+
 //***************** TEXTURES *****************
-
 C3dglBitmap bm;
-bool TextureSetup(const char textureName[], GLuint &textureId, GLuint textureNr)
+bool TextureSetup(const char textureName[], GLuint& textureId, GLuint textureNr)
 {
-
 	bm.load(textureName, GL_RGBA);
 	if (!bm.getBits()) return false;
 
 	glActiveTexture(GL_TEXTURE + textureNr);
 	glGenTextures(1, &textureId);
 	glBindTexture(GL_TEXTURE_2D, textureId);
+
 	//GL_LINEAR_MIPMAP_LINEAR fo minimilisation
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); // GL_CLAMP for skybox  GL_LINEAR_MIPMAP_LINEAR - for resizing
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bm.getWidth(), bm.getHeight(), 0, GL_RGBA,
-		GL_UNSIGNED_BYTE, bm.getBits());
+	GL_UNSIGNED_BYTE, bm.getBits());
 	glGenerateMipmap(GL_TEXTURE_2D);
 
 	return true;
@@ -81,15 +93,6 @@ void NullTexture()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	BYTE bytes[] = { 255, 255, 255 };
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_BGR, GL_UNSIGNED_BYTE, &bytes);
-}
-
-void SetTexture(const char textureName[], GLuint textureId, GLuint textureNr)
-{
-	program.sendUniform(textureName, textureNr);
-	glBindTexture(GL_TEXTURE_2D, textureId);
-	//If you use more than one texture unit(multitexturing), this should be preceded by a glActiveTexture call1 :
-	//glActiveTexture(GL_TEXTURE0);
-	//glBindTexture(GL_TEXTURE_2D, idTexWood);
 }
 
 bool init()
@@ -124,58 +127,69 @@ bool init()
 	//EASY TEXTURE LOAD
 	if (!cristmasTree.load("models\\christmas_tree\\christmas_tree.obj")) return false;
 	cristmasTree.loadMaterials("models\\christmas_tree\\");
+ 
+	//pretty sure, it's something wrong in code that I have to use this
+	cristmasTree.getMaterial(0)->setAmbient({ 0.75, 0.75, 0.75 });
+	cristmasTree.getMaterial(1)->setAmbient({ 0.75, 0.75, 0.75 });
+	cristmasTree.getMaterial(2)->setAmbient({ 0.75, 0.75, 0.75 });
+	cristmasTree.getMaterial(3)->setAmbient({ 0.75, 0.75, 0.75 });
+	cristmasTree.getMaterial(4)->setAmbient({ 0.75, 0.75, 0.75 });
+	cristmasTree.getMaterial(5)->setAmbient({ 0.75, 0.75, 0.75 });
+ 
+
+	//	cout << cristmasTree.getMaterialCount() << endl;
+	//EASY TEXTURE LOAD
+
+	if (!house.load("models\\house\\source\\house.fbx")) return false;
+	house.loadMaterials("models\\house\\textures\\");
+	house.getMaterial(0)->setAmbient({ 0.7, 0.7, 0.7 });
+	house.getMaterial(1)->setAmbient({ 0.7, 0.7, 0.7 });
+	house.getMaterial(2)->setAmbient({ 0.7, 0.7, 0.7 });
+
 
 	if (!streetLamp.load("models\\streetLamp\\streetLamp.obj")) return false;
-	//streetLamp.loadMaterials("models\\streetLamp\\");
-
-
  
 
 	//textures Setup
-	if (!TextureSetup("models/PaintTextures/snow2.jpg", idTexSnow, 0))
+	if (!TextureSetup("models/PaintTextures/snow.jpg", idTexSnow, 0))
 		return false;
-	if (!TextureSetup("models/PaintTextures/road2.jpg", idTexRoad, 1))
-		return false;
- 
-
-	if (!skyboxStaticObjects.load(
-		
-		"models\\skyBox\\skyrender0002.bmp",
-		"models\\skyBox\\skyrender0003.bmp",
-		"models\\skyBox\\skyrender0004.bmp",
-		
-		"models\\skyBox\\skyrender0001.bmp",
-		"models\\skyBox\\skyrender0005.bmp",
-		"models\\skyBox\\skyrender0006.bmp"
-	))
+	if (!TextureSetup("models/PaintTextures/road.jpg", idTexRoad, 0))
 		return false;
 
+	//NORMAL MAP For Snow
+	 if (!TextureSetup("models/PaintTextures/snowNormal.jpg", idTexNormal, 2))
+	 	return false;
+	 if (!TextureSetup("models/PaintTextures/test.jpg", idTexNormalICe, 2))
+		 return false;
+
+	 program.sendUniform("texture0", 0);
+	 program.sendUniform("textureNormal", 2);
+	 
  
 
-	if (!skybox.load(
- 
+	if (!skybox.load
+	(
 		"models\\skyBox\\sky\\TropicalSunnyDayBack1024.jpg",
 		"models\\skyBox\\sky\\TropicalSunnyDayRight1024.jpg",
-		"models\\skyBox\\sky\\TropicalSunnyDayFront1024.jpg", 
+		"models\\skyBox\\sky\\TropicalSunnyDayFront1024.jpg",
 		"models\\skyBox\\sky\\TropicalSunnyDayLeft1024.jpg",
-		"models\\skyBox\\sky\\TropicalSunnyDayUp1024.jpg",  
+		"models\\skyBox\\sky\\TropicalSunnyDayUp1024.jpg",
 		"models\\skyBox\\sky\\TropicalSunnyDayDown1024.jpg"
-		
-
-		
-	
-	
-	
-		
-		
-		
-		
-		
-	
-	
 	))
 		return false;
 
+	if (!NightSkybox.load
+	(
+		"models\\skyBox\\back_even.png",
+		"models\\skyBox\\left_even.png",
+		"models\\skyBox\\front_even.png",
+		"models\\skyBox\\Right_even.png",
+		"models\\skyBox\\Top_even.png",
+		"models\\skyBox\\bottom_even.png"	
+	))
+		return false;
+		
+ 
 	// Initialise the View Matrix (initial position of the camera)
 	matrixView = rotate(mat4(1), radians(12.f), vec3(1, 0, 0));
 	matrixView *= lookAt(
@@ -204,157 +218,234 @@ mat4 setMatrix(vec3 Translate, float RotAngle, vec3 Rotate, vec3 Scale, vec3 obj
 	//Directional Light Mat
 	program.sendUniform("materialDiffuse", vec3(objColour));
 
-	return m; 
+	return m;
 }
 
 void Directional()
 {
-	float oneDayTimeInSec = 12.0f; // Total seconds representing one full day cycle
-	float elapsedTime = glutGet(GLUT_ELAPSED_TIME) / 1000.0f; // Time in seconds since the program started
-	float dayFraction = fmod(elapsedTime, oneDayTimeInSec) / oneDayTimeInSec; // Fraction of the day
-	timeOfDay = dayFraction ;
+	if (isItNight)
+		return;
  
+	float ambientColor = 0;
+
+	if (DayRotationAngle  < 180)
+		ambientColor = dayFraction ;
+	else if (DayRotationAngle < 360 )
+		ambientColor = (1 - dayFraction);
+ 
+	// Calculate the sun's position in the sky
+	float lightX = sin(radians(DayRotationAngle / 2)); // Light movement along X axis (180 degreee onle where 0 = 0 & 180 = 1)
+	// For better RESULT so we are moving from -90 to 270 bacily from -1 to 0 to 1 and back to -1
+	float lightY = sin(radians(DayRotationAngle - 90)); //movement Y axis (height) 
+
 	//Directional Light
-	program.sendUniform("lightDir.direction", vec3(-1.0 + timeOfDay, 0.5, -1.0));
-	program.sendUniform("lightDir.diffuse", vec3(timeOfDay, timeOfDay, timeOfDay)); // set "lightDir.diffuse", vec3(0.0, 0.0, 0.0) to switch off
+	program.sendUniform("lightDir.direction", vec3(lightX, lightY, 0)) ;
+	program.sendUniform("lightDir.diffuse", vec3(ambientColor, ambientColor, ambientColor)); // set "lightDir.diffuse", vec3(0.0, 0.0, 0.0) to switch off
 }
 
-void Shine()
+// Ambient light is considered to be the light that was reflected for so many times that it appears to be emanating from everywhere.
+void AmbientLight()	
 {
-	//shine
-	program.sendUniform("lightPoint.specular", vec3(0.1, 0.1, 0.1)); // 1 for the brightest possible effect
-	program.sendUniform("materialSpecular", vec3(0.6, 0.6, 1.0)); // bluish colouring
-	program.sendUniform("shininess", 10.0);
-
+	program.sendUniform("lightAmbient.color", vec3(0.3, 0.3, 0.33));
 }
 
-void PointLight(vec3 pos, vec3 color)
-{
-	program.sendUniform("lightPoint.position", pos);
-	program.sendUniform("lightPoint.diffuse", color); // color
+//calculates and updates global variables which repsents day time
+void CalcCurrentDayTime()
+{	
+	float oneDayTimeInSec = 60;
+	//Use FRAME / delta TIME INSTEAD !!!!!!!!!!!!!!?? 
+	float elapsedTime = glutGet(GLUT_ELAPSED_TIME) / 1000.0f * timeAccelerator; // Time in seconds since the program started
+	dayFraction = fmod(elapsedTime, oneDayTimeInSec) / oneDayTimeInSec; // Fraction of the day
+	DayRotationAngle = dayFraction * 360;
+	//	float timeOfDay = dayFraction * 24h;
 }
-
-void LightOff(bool directLightState = true, bool pointLightState = true, bool ambientLightState = true, bool shineState = true)
-{
-
-	//directional  OFF
-	if(directLightState)
-		program.sendUniform("lightDir.diffuse", vec3(0.0f, 0.0f, 0.0f));
-
-	//point light OFF
-	if (pointLightState)
-		program.sendUniform("lightPoint.diffuse", vec3(0.0f, 0.0f, 0.0f));	
-
-	//Ambient OFF
-	if(ambientLightState)
-		program.sendUniform("lightAmbient.color", vec3(0.0f, 0.0f, 0.0f));
-
-	//Shine
-	if(shineState)
-		program.sendUniform("lightPoint.specular", vec3(0.0f, 0.0f, 0.0f));
-}
-
-void AmbientLight()
-{
-	// Ambient light is considered to be the light that was reflected for so many times that it appears to be emanating from everywhere.
-	program.sendUniform("lightAmbient.color", vec3(0.2, 0.2, 0.2));
-}
- 
 
 void SkyBoxAndDayCalculation()
 {
+	//FRAME TIME!!!!!!!!!!!!!! delta 
 	//directionlight off ambient like TO THE MAX , small sky box  moves with  a player , render skybox first
-	float oneDayTimeInSec = 24.0f; // Total seconds representing one full day cycle
-	float elapsedTime = glutGet(GLUT_ELAPSED_TIME) / 1000.0f; // Time in seconds since the program started
-	float dayFraction = fmod(elapsedTime, oneDayTimeInSec) / oneDayTimeInSec; // Fraction of the day
-	float timeOfDay = 0;
-	if (dayFraction <= 0.5)
-		timeOfDay = 2 * dayFraction;
+	program.sendUniform("lightDir.diffuse", vec3(0.0f, 0.0f, 0.0f));	//off directional before sky box render
+
+	//point light (point ligh will be ON for some time during Early morning, and a bit before night) , TODO move to point light function~!
+	if(dayFraction < 0.2 || isItNight || dayFraction > 0.93)
+		isPointLightOff = false; // on
 	else
-		timeOfDay = 2 * dayFraction;
-	 
+		isPointLightOff = true; // off
 
 
-	LightOff(true, isPointLightOff, false, false);
-	program.sendUniform("lightAmbient.color", vec3(1, 1, 1));
+	//sunset (10 point up to increase red , 10 points down to decrease)
+	if (dayFraction >= 0.75f && dayFraction <= 0.85f && !isItNight)
+		sunsetColorDivider = 1 + ((dayFraction - 0.75) * 10);
+
+	if (dayFraction >= 0.86f && dayFraction <= 0.96f && !isItNight)
+		sunsetColorDivider = 2 - ((dayFraction - 0.86) * 10 );
+
+
+	// DAY TIME
+	float ambientColor = 0;
+
+	if (dayFraction < 0.5f)
+	{
+		IsTimerReseted = true;
+		ambientColor = dayFraction * 2;
+	}
+	
+	else if (dayFraction < 0.98f)
+		ambientColor = 2 - dayFraction * 2;
+	else if (dayFraction < 1.0f && IsTimerReseted)
+	{
+		IsTimerReseted = false;
+		isItNight = !isItNight;
+	}
+
+	//SkyBox Color Setup
+	program.sendUniform("lightAmbient.color", vec3(ambientColor, ambientColor / sunsetColorDivider, ambientColor / sunsetColorDivider));
 	program.sendUniform("materialAmbient", vec3(1.0f, 1.0f, 1.0f));
 	program.sendUniform("materialDiffuse", vec3(0.0f, 0.0f, 0.0f));
 
+	//fooog with same color as skybox
+	program.sendUniform("fogColour", vec3(ambientColor, ambientColor / sunsetColorDivider, ambientColor / sunsetColorDivider));
+	program.sendUniform("fogDensity", 0.005f);
 
+	//SKY BOX RENDER + ROTATION
 	mat4 m = matrixView;
-	m = rotate(m, radians(dayFraction * 40), {0,1,0});
-	skybox.render(m);
-	return;
-	if (dayFraction <= 0.5)
-	skybox.render(m);
+	m = rotate(m, radians(DayRotationAngle), { 0,1,0 });
+	
+
+	if (isItNight)
+	{
+		m = rotate(m, radians(DayRotationAngle / 1.5f), { 1,0,0 });
+		NightSkybox.render(m);
+	}
 	else
-	skyboxStaticObjects.render(m);
+		skybox.render(m);
+}
+
+
+void streetLampFun(float x , float y, float z , string shaderNamePos, string shaderDiffuse, string shaderSpecular, int lampControll, vec3 color = { 0.1 , 0.2, 0.7 })
+{ 
+	bool isLightON = true;
+
+	switch (lampControll)
+	{
+	case 0:	//lampControll = 0; Automatic
+		isLightON = !isPointLightOff;
+		break;
+	case 1:	//lampControll = 1; Allways ON MANUAL CONTROLL
+		isLightON = true;
+		break;
+	case 2:	//lampControll = 2; Allways OFF MANUAL CONTROLL
+		isLightON = false;
+		break;
+	default:
+		break;
+	}
+
+	if ((isLightON)) // !isPointLightOff || ON 
+	{
+		program.sendUniform(shaderNamePos, vec3(x, y, z));
+		program.sendUniform(shaderDiffuse, color);
+
+		program.sendUniform("lightAmbient.color", vec3(0, 3, 11));
+
+		//  Shine // not natural as u said but looks cool
+		program.sendUniform(shaderSpecular, vec3(0.4, 0.4, 0.4)); // only for point light in our case
+		program.sendUniform("materialSpecular", vec3(0.5, 0.5, 0.5)); // bluish colouring
+		program.sendUniform("shininess", 20.0);
+	}
+	
+	else // OFF
+	{
+		program.sendUniform(shaderDiffuse, vec3(0, 0, 0));
+		program.sendUniform("lightAmbient.color", vec3(0.6, 0.6, 0.6)); // to give glutSolidSphere some color when off
+		program.sendUniform(shaderSpecular, vec3(0.0f, 0.0f, 0.0f)); // delete Shine if off
+	}
+		
+	//glutSolidSphere position and Ambient Light
+	mat4 m;
+	m = matrixView;
+	m = translate(m, vec3( x, y, z ));
+	m = scale(m, vec3(0.5f, 0.5f, 0.5f));
+	program.sendUniform("matrixModelView", m);
+		
+	//Mat
+	program.sendUniform("materialAmbient", vec3(1.f, 1.f, 1.1f));
+	program.sendUniform("materialDiffuse", vec3((1.f, 1.f, 1.f)));
+ 
+	//render bulb
+	glutSolidSphere(1, 32, 32);
+
+	//reset Ambient Light And redner StreetLamp
+	program.sendUniform("lightAmbient.color", vec3(1.1, 1.1, 1.1));
+
+	streetLamp.render(setMatrix({ x, y - 4, z }, 0.f, { 0.0f, 1.0f, 0.0f }, { 0.03f,  0.03f ,  0.03f }, { 0.1f,  0.1f, 0.15f }));
 }
  
+
+
 //*********** RENDER SCENE ***********
 void renderScene(mat4& matrixView, float time, float deltaTime)
 {
-	//skydom
+	CalcCurrentDayTime();
 	SkyBoxAndDayCalculation();
-	 
-	AmbientLight();
 	Directional();
-	//PointLight({0,0,0}, {1.0 , 0.3, 0.3}); //only on bulb per shader name?
-	Shine();
-	LightOff(false, isPointLightOff, false, false);
+	AmbientLight();
  
-	angle += 0.003f;
-
-
 	//cristmasTree
-
 	cristmasTree.render(setMatrix({ 0.f, 8.5f, 0.f }, 0.f, { 1.0f, 1.0f, 0.0f }, { 7.f,  7.f ,  7.f }, { 0.f, 1.f, 0.f }));
+	cristmasTree.render(setMatrix({ 40.f, 24.5f, 27.f }, 0.f, { 1.0f, 1.0f, 0.0f }, { 7.f,  7.f ,  7.f }, { 0.f, 1.f, 0.f }));
+	cristmasTree.render(setMatrix({ 70.f, 24.5f, 9.f }, 0.f, { 1.0f, 1.0f, 0.0f }, { 7.f,  7.f ,  7.f }, { 0.f, 1.f, 0.f }));
 
+	//House
+	house.render(setMatrix({ 53.f, 24.5f, 10.f }, 0.f, { 1.0f, 1.0f, 0.0f }, { 0.1f,  0.1f ,  0.1f }, { 1.f, 1.f, 1.f }));
  
+	//Terrain
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, idTexNormal);
 
-	// render the terrain
-	SetTexture("texture0", idTexSnow, 0);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, idTexSnow);
+
+	program.sendUniform("materialSpecular", vec3(0.2, 0.2, 0.2)); 	//shininess
 	terrain.render(setMatrix({ 0.f, 0.f, 0.f }, 0.f, { 0.0f, 1.0f, 0.0f }, { 1.f,  1.f ,  1.f }, { 1.f, 1.f, 1.f }));
 
-	// render the road
-	SetTexture("texture1", idTexRoad, 1);
+	//Road
+	program.sendUniform("materialSpecular", vec3(1, 1, 1.5)); // bluish colouring
+
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, idTexNormalICe);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, idTexRoad);
+
+
+
 	road.render(setMatrix({ 0.f, 0.15f, 0.f }, 0.f, { 0.0f, 1.0f, 0.0f }, { 1.f,  1.f ,  1.f }, { 1.f, 1.f, 1.f }));
-
-
- 
-	//streetLamps
-	//LightOff(); // adds glow specular
-	PointLight({ 12.f, 13.5f, 0.f }, { 0.0 , 0.3, 1.0 });
-	program.sendUniform("lightAmbient.color", vec3(0, 3, 11));
-
-
-	mat4 m;
-	m = matrixView;
-	m = translate(m, vec3(12.f, 13.5f, 0.f));
-	m = scale(m, vec3(0.5f, 0.5f, 0.5f));
-
-	program.sendUniform("matrixModelView", m);
-
-	glutSolidSphere(1, 32, 32);
-
-
-	program.sendUniform("lightAmbient.color", vec3(0, 0, 0));
-	//streetLamp.render(setMatrix({ 12.f, 13.5f, 0.f }, 0.f, { 1.0f, 1.0f, 0.0f }, { 0.003f,  0.003f ,  0.003f }, { 22.1f,  0.1f, 0.1f }));
-	streetLamp.render(setMatrix({ 12.f, 9.5f, 0.f }, 0.f, { 1.0f, 1.0f, 0.0f }, { 0.03f,  0.03f ,  0.03f }, { 0.1f,  0.1f, 0.1f }));
-
  
 
 
- 
- 
- 
+	//reset of textures, pretty sure I now need this here
+	NullTexture();
 
+	//STREET LAMPS
+	streetLampFun(5.5f, 13.4f, -9.f, "lightPoint.position", "lightPoint.diffuse", "lightPoint.specular", AreLeftLampsOff);
+	streetLampFun(16.f, 16.f, -13.f, "lightPoint2.position", "lightPoint2.diffuse", "lightPoint2.specular", AreLeftLampsOff);
+	streetLampFun(49.f, 17.2f, -21.f, "lightPoint3.position", "lightPoint3.diffuse", "lightPoint3.specular", AreRightLampsOff);
+	streetLampFun(63.f, 18.2f, -44.f, "lightPoint4.position", "lightPoint4.diffuse", "lightPoint4.specular", AreLeftLampsOff);
+	streetLampFun(76.f, 19.2f, -30.f, "lightPoint5.position", "lightPoint5.diffuse", "lightPoint5.specular", AreRightLampsOff);
+	streetLampFun(99.f, 19.6f, -20.f, "lightPoint6.position", "lightPoint6.diffuse", "lightPoint6.specular", AreLeftLampsOff);
+	streetLampFun(87.f, 22.4f, 8.f, "lightPoint7.position", "lightPoint7.diffuse", "lightPoint7.specular", AreRightLampsOff);
+	streetLampFun(90.f, 24.f, 37.f, "lightPoint8.position", "lightPoint8.diffuse", "lightPoint8.specular", AreLeftLampsOff);
+	streetLampFun(57.f, 28.5f, 37.f, "lightPoint9.position", "lightPoint9.diffuse", "lightPoint9.specular", AreRightLampsOff);
+	streetLampFun(29.f, 28.9f, 37.f, "lightPoint10.position", "lightPoint10.diffuse", "lightPoint10.specular", AreRightLampsOff);
+
+	// delete shininess for rest of scene  
+	program.sendUniform("materialSpecular", vec3(0, 0, 0)); // bluish colouring
 }
 
 //*********** RENDER GLUT ***********
 void onRender()
 {
-
 	// these variables control time & animation
 	static float prev = 0;
 	float time = glutGet(GLUT_ELAPSED_TIME) * 0.001f;	// time since start in seconds
@@ -372,14 +463,21 @@ void onRender()
 		_vel * deltaTime),		// animate camera motion (controlled by WASD keys)
 		-pitch, vec3(1, 0, 0))	// switch the pitch on
 		* matrixView;
-
+ 
 	// move the camera up following the profile of terrain (Y coordinate of the terrain)
 	float terrainY = -terrain.getInterpolatedHeight(inverse(matrixView)[3][0], inverse(matrixView)[3][2]);
 	matrixView = translate(matrixView, vec3(0, terrainY, 0));
 
+
+
+	//SHOW POS ON THE MAP!!!!!!!!!!!!!!!!!!!!!!
+	//cout << inverse(matrixView)[3][0] << "       " << terrainY << "       " << inverse(matrixView)[3][2] << endl;
+
+
+
+
 	// setup View Matrix
 	program.sendUniform("matrixView", matrixView);
-
 
 	renderScene(matrixView, time, deltaTime); // render the scene objects
 
@@ -389,7 +487,6 @@ void onRender()
 	glutSwapBuffers(); 	// essential for double-buffering technique
 	glutPostRedisplay();// proceed the animation
 }
-
 
 //*********** RESHAPE***********
 // called before window opened or resized - to setup the Projection Matrix
@@ -414,7 +511,11 @@ void onKeyDown(unsigned char key, int x, int y)
 	case 'd': _acc.x = -accel; break;
 	case 'e': _acc.y = accel; break;
 	case 'q': _acc.y = -accel; break;
-	case 't': isPointLightOff = !isPointLightOff; break;
+	//sunsetColorDivider = 1; just to avoid bug if sunset color is not 1 and we sudenly increasing time, day or night can be become red
+	case 'n': timeAccelerator += 0.5f; sunsetColorDivider = 1; break;
+	case 'm': timeAccelerator = 1; break;
+	case '1': AreLeftLampsOff >= 2 ? AreLeftLampsOff = 0 : AreLeftLampsOff++; break; // just resets int when is over 2 or increase if it's not over
+	case '2': AreRightLampsOff >= 2 ? AreRightLampsOff = 0 : AreRightLampsOff++; break; // just resets int when is over 2 or increase if it's not over
 	}
 }
 
@@ -494,8 +595,8 @@ void onMotion(int x, int y)
 	float newPitch = glm::clamp(pitch + deltaPitch, -maxPitch, maxPitch);
 	matrixView = rotate(rotate(rotate(mat4(1.f),
 		newPitch, vec3(1.f, 0.f, 0.f)),
-		deltaYaw, vec3(0.f, 1.f, 0.f)), 
-		-pitch, vec3(1.f, 0.f, 0.f)) 
+		deltaYaw, vec3(0.f, 1.f, 0.f)),
+		-pitch, vec3(1.f, 0.f, 0.f))
 		* matrixView;
 }
 
@@ -505,7 +606,7 @@ void onMouseWheel(int button, int dir, int x, int y)
 	onReshape(glutGet(GLUT_WINDOW_WIDTH), glutGet(GLUT_WINDOW_HEIGHT));
 }
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
 	// init GLUT and create Window
 	glutInit(&argc, argv);
