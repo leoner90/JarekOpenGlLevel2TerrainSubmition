@@ -181,18 +181,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="source\GlutSetup.cpp" />
-    <ClCompile Include="source\LightManager.cpp" />
-    <ClCompile Include="source\Texturing.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="shaders\readme.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="headers\GlutSetup.h" />
-    <ClInclude Include="headers\LightManager.h" />
-    <ClInclude Include="headers\modelManager.h" />
-    <ClInclude Include="headers\Texturing.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
