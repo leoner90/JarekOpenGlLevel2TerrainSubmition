@@ -219,38 +219,6 @@ mat4 setMatrix(vec3 Translate, float RotAngle, vec3 Rotate, vec3 Scale, vec3 obj
 	return m;
 }
 
-//DIRECTIONAL LIGHT
-void Directional()
-{
-	if (isItNight)
-		return;
- 
-	float ambientColor = 0;
-
-	if (DayRotationAngle  < 180)
-		ambientColor = dayFraction * 2;
-	else if (DayRotationAngle < 360 )
-		ambientColor = (2 - dayFraction * 2);
- 
-	// Calculate the sun's position in the sky
-	float lightX = sin(radians(DayRotationAngle / 2)); // Light movement along X axis (180 degreee onle where 0 = 0 & 180 = 1)
-	// For better RESULT so we are moving from -90 to 270 bacily from -1 to 0 to 1 and back to -1
-	float lightY = sin(radians(DayRotationAngle - 90)); //movement Y axis (height) 
-
-	//Directional Light
-	program.sendUniform("lightDir.direction", vec3(lightX, lightY, 0)) ;
-	program.sendUniform("lightDir.diffuse", vec3(ambientColor, ambientColor, ambientColor)); // set "lightDir.diffuse", vec3(0.0, 0.0, 0.0) to switch off
-
-	//Specular reflection
-	program.sendUniform("lightDir.specular", vec3(0.5f, 0.5f, 0.5f));
-}
-
-// Ambient light is considered to be the light that was reflected for so many times that it appears to be emanating from everywhere.
-void AmbientLight()	
-{
-	program.sendUniform("lightAmbient.color", vec3(0.3, 0.3, 0.33));
-}
-
 //DAY NIGHT CALC. - calculates and updates global variables which repsents day time
 void CalcCurrentDayTime()
 {	
@@ -260,6 +228,38 @@ void CalcCurrentDayTime()
 	dayFraction = fmod(elapsedTime, oneDayTimeInSec) / oneDayTimeInSec; // Fraction of the day
 	DayRotationAngle = dayFraction * 360;
 	//	float timeOfDay = dayFraction * 24h;
+}
+
+//DIRECTIONAL LIGHT
+void Directional()
+{
+	if (isItNight)
+		return;
+
+	float diffuseColor = 0;
+
+	if (DayRotationAngle < 180)
+		diffuseColor = dayFraction * 2;
+	else if (DayRotationAngle < 360)
+		diffuseColor = (2 - dayFraction * 2);
+
+	// Calculate the sun's position in the sky
+	float lightX = sin(radians(DayRotationAngle / 2)); // Light movement along X axis (180 degreee onle where 0 = 0 & 180 = 1)
+	// For better RESULT so we are moving from -90 to 270 bacily from -1 to 0 to 1 and back to -1
+	float lightY = sin(radians(DayRotationAngle - 90)); //movement Y axis (height) 
+
+	//Directional Light
+	program.sendUniform("lightDir.direction", vec3(lightX, lightY, 0));
+	program.sendUniform("lightDir.diffuse", vec3(diffuseColor, diffuseColor, diffuseColor)); // set "lightDir.diffuse", vec3(0.0, 0.0, 0.0) to switch off
+
+	//Specular reflection
+	program.sendUniform("lightDir.specular", vec3(0.5f, 0.5f, 0.5f));
+}
+
+// Ambient light is considered to be the light that was reflected for so many times that it appears to be emanating from everywhere.
+void AmbientLight()
+{
+	program.sendUniform("lightAmbient.color", vec3(0.3, 0.3, 0.33));
 }
 
 //SKYBOX 
@@ -283,7 +283,6 @@ void SkyBoxAndDayCalculation()
 	if (dayFraction >= 0.86f && dayFraction <= 0.96f && !isItNight)
 		sunsetColorDivider = 2 - ((dayFraction - 0.86) * 10 );
 
-
 	// DAY TIME
 	float ambientColor = 0;
 
@@ -306,7 +305,7 @@ void SkyBoxAndDayCalculation()
 	program.sendUniform("materialAmbient", vec3(1.0f, 1.0f, 1.0f));
 	program.sendUniform("materialDiffuse", vec3(0.0f, 0.0f, 0.0f));
 
-	//fooog with same color as skybox
+	//fooog with same color as skybox (THE BEST PLACE FOR FOG DON'T YOU THINK!?!?!?!?)
 	program.sendUniform("fogColour", vec3(ambientColor, ambientColor / sunsetColorDivider, ambientColor / sunsetColorDivider));
 	program.sendUniform("fogDensity", 0.005f);
 
