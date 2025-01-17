@@ -49,25 +49,6 @@ out mat3 matrixTangent;
 //fog
 out float fogFactor;
 uniform float fogDensity;
-
-//**** Directional light
-struct DIRECTIONAL
-{
-	vec3 direction;
-	vec3 diffuse;
-};
-
-uniform DIRECTIONAL lightDir;
-
-vec4 DirectionalLight(DIRECTIONAL light)
-{
-	// Calculate Directional Light
-	vec4 color = vec4(0, 0, 0, 0);
-	vec3 L = normalize(mat3(matrixView) * light.direction); // matrixView makes camera depending light // //cordinats 4d  direction 3d( mat3)
-	float NdotL = dot(normal, L); // control light intesivity depending on rotation to light source
-	color += vec4(materialDiffuse * light.diffuse, 1) * max(NdotL, 0); // mix two colors // max(NdotL, 0) to not drop below 0 if away of light
-	return color;
-}
  
 void main(void)
 {
@@ -93,6 +74,5 @@ void main(void)
  	// calculate light
 	color = vec4(0, 0, 0, 1);
 
-	color += DirectionalLight(lightDir);
 	color += AmbientLight(lightAmbient);
 }

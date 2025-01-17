@@ -76,7 +76,8 @@ bool TextureSetup(const char textureName[], GLuint& textureId, GLuint textureNr)
 	glGenTextures(1, &textureId);
 	glBindTexture(GL_TEXTURE_2D, textureId);
 
-	//GL_LINEAR_MIPMAP_LINEAR fo minimilisation
+
+	//GL_LINEAR_MIPMAP_LINEAR fo minimilisation (GL_EXT_texture_filter_anisotropic for testing looks the same)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); // GL_CLAMP for skybox  GL_LINEAR_MIPMAP_LINEAR - for resizing
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bm.getWidth(), bm.getHeight(), 0, GL_RGBA,
 	GL_UNSIGNED_BYTE, bm.getBits());
@@ -163,7 +164,7 @@ bool init()
 		 return false;
 
 	 program.sendUniform("texture0", 0);
-	 program.sendUniform("textureNormal", 2);
+	 program.sendUniform("textureNormal", 2); // why 2 not 1??? It's an ancient religion
 
 	if (!skybox.load
 	(
@@ -227,9 +228,9 @@ void Directional()
 	float ambientColor = 0;
 
 	if (DayRotationAngle  < 180)
-		ambientColor = dayFraction ;
+		ambientColor = dayFraction * 2;
 	else if (DayRotationAngle < 360 )
-		ambientColor = (1 - dayFraction);
+		ambientColor = (2 - dayFraction * 2);
  
 	// Calculate the sun's position in the sky
 	float lightX = sin(radians(DayRotationAngle / 2)); // Light movement along X axis (180 degreee onle where 0 = 0 & 180 = 1)
@@ -239,6 +240,9 @@ void Directional()
 	//Directional Light
 	program.sendUniform("lightDir.direction", vec3(lightX, lightY, 0)) ;
 	program.sendUniform("lightDir.diffuse", vec3(ambientColor, ambientColor, ambientColor)); // set "lightDir.diffuse", vec3(0.0, 0.0, 0.0) to switch off
+
+	//Specular reflection
+	program.sendUniform("lightDir.specular", vec3(0.5f, 0.5f, 0.5f));
 }
 
 // Ambient light is considered to be the light that was reflected for so many times that it appears to be emanating from everywhere.
@@ -313,7 +317,7 @@ void SkyBoxAndDayCalculation()
 
 	if (isItNight)
 	{
-		m = rotate(m, radians(DayRotationAngle / 1.5f), { 1,0,0 });
+		m = rotate(m, radians(DayRotationAngle / 1.4f), { 0,0,1 });
 		NightSkybox.render(m);
 	}
 	else
@@ -377,6 +381,9 @@ void streetLampFun(float x , float y, float z , string shaderNamePos, string sha
 	//reset Ambient Light And redner StreetLamp
 	program.sendUniform("lightAmbient.color", vec3(1.1, 1.1, 1.1));
 
+	//shine for street lamp
+	program.sendUniform("materialSpecular", vec3(0.15, 0.15, 0.15));  
+
 	streetLamp.render(setMatrix({ x, y - 4, z }, 0.f, { 0.0f, 1.0f, 0.0f }, { 0.03f,  0.03f ,  0.03f }, { 0.1f,  0.1f, 0.15f }));
 }
  
@@ -405,7 +412,7 @@ void renderScene(mat4& matrixView, float time, float deltaTime)
 	glBindTexture(GL_TEXTURE_2D, idTexSnow);
 
 	program.sendUniform("materialSpecular", vec3(0.1, 0.1, 0.1)); 	//shininess
-	terrain.render(setMatrix({ 0.f, 0.f, 0.f }, 0.f, { 0.0f, 1.0f, 0.0f }, { 1.f,  1.f ,  1.f }, { 1.f, 1.f, 1.f }));
+	terrain.render(setMatrix({ 0.f, 0.f, 0.f }, 0.f, { 0.0f, 1.0f, 0.0f }, { 1.f,  1.f ,  1.f }, { 1.2f, 1.2f, 1.2f }));
 
 	//Road
 	program.sendUniform("materialSpecular", vec3(1, 1, 1.5)); 	//shininess
@@ -504,7 +511,7 @@ void onKeyDown(unsigned char key, int x, int y)
 	case 'e': _acc.y = accel; break;
 	case 'q': _acc.y = -accel; break;
 	//sunsetColorDivider = 1; just to avoid bug if sunset color is not 1 and we sudenly increasing time, day or night can be become red
-	case 'n': timeAccelerator += 1.f; sunsetColorDivider = 1; break;
+	case 'n': timeAccelerator += 5.f; sunsetColorDivider = 1; break;
 	case 'm': timeAccelerator = 1; break;
 	case '1': AreLeftLampsOff >= 2 ? AreLeftLampsOff = 0 : AreLeftLampsOff++; break; // just resets int when is over 2 or increase if it's not over
 	case '2': AreRightLampsOff >= 2 ? AreRightLampsOff = 0 : AreRightLampsOff++; break; // just resets int when is over 2 or increase if it's not over

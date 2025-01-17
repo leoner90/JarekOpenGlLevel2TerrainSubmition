@@ -30,6 +30,36 @@ uniform vec3 fogColour;
 in float fogFactor;
 
 
+//**** Directional light PER FRAGMENT
+struct DIRECTIONAL
+{
+	vec3 direction;
+	vec3 diffuse;
+	vec3 specular;
+};
+
+uniform DIRECTIONAL lightDir;
+
+vec4 DirectionalLight(DIRECTIONAL light)
+{
+	// Calculate Directional Light
+	vec4 color = vec4(0, 0, 0, 0);
+	vec3 L = normalize(mat3(matrixView) * light.direction); // matrixView makes camera depending light // //cordinats 4d  direction 3d( mat3)
+	float NdotL = dot(normal, L); // control light intesivity depending on rotation to light source
+	color += vec4(materialDiffuse * light.diffuse, 1) * max(NdotL, 0); // mix two colors // max(NdotL, 0) to not drop below 0 if away of light
+ 
+	//shine
+	vec3 V = normalize(-position.xyz);
+	vec3 R = reflect(-L, normal);
+	float RdotV = dot(R, V);
+	color += vec4(materialSpecular * light.specular * pow(max(RdotV, 0), shininess), 1);
+
+
+	return color;
+}
+
+
+//**** POINT LIGET PER FRAGMNT
 struct POINT
 {
 	vec3 position;
@@ -80,6 +110,7 @@ void main(void)
 	outColor += PointLight(lightPoint8);
 	outColor += PointLight(lightPoint9);
 	outColor += PointLight(lightPoint10);
+	outColor += DirectionalLight(lightDir);
 
 	//texture multyplier
 	outColor *= texture(texture0, texCoord0);
