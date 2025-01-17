@@ -159,13 +159,11 @@ bool init()
 	//NORMAL MAP For Snow
 	 if (!TextureSetup("models/PaintTextures/snowNormal.jpg", idTexNormal, 2))
 	 	return false;
-	 if (!TextureSetup("models/PaintTextures/test.jpg", idTexNormalICe, 2))
+	 if (!TextureSetup("models/PaintTextures/iceNormals.jpg", idTexNormalICe, 2))
 		 return false;
 
 	 program.sendUniform("texture0", 0);
 	 program.sendUniform("textureNormal", 2);
-	 
- 
 
 	if (!skybox.load
 	(
@@ -203,7 +201,6 @@ bool init()
 	return true;
 }
 
-
 //SETUP FRO MATRIX EG OBJECTS IN THE WORLD
 mat4 setMatrix(vec3 Translate, float RotAngle, vec3 Rotate, vec3 Scale, vec3 objColour)
 {
@@ -221,6 +218,7 @@ mat4 setMatrix(vec3 Translate, float RotAngle, vec3 Rotate, vec3 Scale, vec3 obj
 	return m;
 }
 
+//DIRECTIONAL LIGHT
 void Directional()
 {
 	if (isItNight)
@@ -249,10 +247,10 @@ void AmbientLight()
 	program.sendUniform("lightAmbient.color", vec3(0.3, 0.3, 0.33));
 }
 
-//calculates and updates global variables which repsents day time
+//DAY NIGHT CALC. - calculates and updates global variables which repsents day time
 void CalcCurrentDayTime()
 {	
-	float oneDayTimeInSec = 60;
+	float oneDayTimeInSec = 160; // day circle in seconds! 3min default
 	//Use FRAME / delta TIME INSTEAD !!!!!!!!!!!!!!?? 
 	float elapsedTime = glutGet(GLUT_ELAPSED_TIME) / 1000.0f * timeAccelerator; // Time in seconds since the program started
 	dayFraction = fmod(elapsedTime, oneDayTimeInSec) / oneDayTimeInSec; // Fraction of the day
@@ -260,6 +258,7 @@ void CalcCurrentDayTime()
 	//	float timeOfDay = dayFraction * 24h;
 }
 
+//SKYBOX 
 void SkyBoxAndDayCalculation()
 {
 	//FRAME TIME!!!!!!!!!!!!!! delta 
@@ -321,7 +320,7 @@ void SkyBoxAndDayCalculation()
 		skybox.render(m);
 }
 
-
+// LAMPS 
 void streetLampFun(float x , float y, float z , string shaderNamePos, string shaderDiffuse, string shaderSpecular, int lampControll, vec3 color = { 0.1 , 0.2, 0.7 })
 { 
 	bool isLightON = true;
@@ -382,7 +381,6 @@ void streetLampFun(float x , float y, float z , string shaderNamePos, string sha
 }
  
 
-
 //*********** RENDER SCENE ***********
 void renderScene(mat4& matrixView, float time, float deltaTime)
 {
@@ -406,25 +404,22 @@ void renderScene(mat4& matrixView, float time, float deltaTime)
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, idTexSnow);
 
-	program.sendUniform("materialSpecular", vec3(0.2, 0.2, 0.2)); 	//shininess
+	program.sendUniform("materialSpecular", vec3(0.1, 0.1, 0.1)); 	//shininess
 	terrain.render(setMatrix({ 0.f, 0.f, 0.f }, 0.f, { 0.0f, 1.0f, 0.0f }, { 1.f,  1.f ,  1.f }, { 1.f, 1.f, 1.f }));
 
 	//Road
-	program.sendUniform("materialSpecular", vec3(1, 1, 1.5)); // bluish colouring
+	program.sendUniform("materialSpecular", vec3(1, 1, 1.5)); 	//shininess
 
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, idTexNormalICe);
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, idTexRoad);
-
-
-
+ 
 	road.render(setMatrix({ 0.f, 0.15f, 0.f }, 0.f, { 0.0f, 1.0f, 0.0f }, { 1.f,  1.f ,  1.f }, { 1.f, 1.f, 1.f }));
  
-
-
-	//reset of textures, pretty sure I now need this here
+ 
+	//reset of textures, pretty sure  there is no point to do this (aks you latter)
 	NullTexture();
 
 	//STREET LAMPS
@@ -468,14 +463,11 @@ void onRender()
 	float terrainY = -terrain.getInterpolatedHeight(inverse(matrixView)[3][0], inverse(matrixView)[3][2]);
 	matrixView = translate(matrixView, vec3(0, terrainY, 0));
 
-
-
+ 
 	//SHOW POS ON THE MAP!!!!!!!!!!!!!!!!!!!!!!
 	//cout << inverse(matrixView)[3][0] << "       " << terrainY << "       " << inverse(matrixView)[3][2] << endl;
 
-
-
-
+ 
 	// setup View Matrix
 	program.sendUniform("matrixView", matrixView);
 
@@ -512,7 +504,7 @@ void onKeyDown(unsigned char key, int x, int y)
 	case 'e': _acc.y = accel; break;
 	case 'q': _acc.y = -accel; break;
 	//sunsetColorDivider = 1; just to avoid bug if sunset color is not 1 and we sudenly increasing time, day or night can be become red
-	case 'n': timeAccelerator += 0.5f; sunsetColorDivider = 1; break;
+	case 'n': timeAccelerator += 1.f; sunsetColorDivider = 1; break;
 	case 'm': timeAccelerator = 1; break;
 	case '1': AreLeftLampsOff >= 2 ? AreLeftLampsOff = 0 : AreLeftLampsOff++; break; // just resets int when is over 2 or increase if it's not over
 	case '2': AreRightLampsOff >= 2 ? AreRightLampsOff = 0 : AreRightLampsOff++; break; // just resets int when is over 2 or increase if it's not over

@@ -95,6 +95,4 @@ void main(void)
 
 	color += DirectionalLight(lightDir);
 	color += AmbientLight(lightAmbient);
-
-
 }
