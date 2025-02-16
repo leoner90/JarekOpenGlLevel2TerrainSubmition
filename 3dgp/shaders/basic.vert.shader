@@ -50,6 +50,14 @@ out mat3 matrixTangent;
 out float fogFactor;
 uniform float fogDensity;
  
+//shadow
+uniform mat4 matrixShadow;
+out vec4 shadowCoord;
+uniform mat4 shadowCameraView;
+
+//water reflection
+uniform vec4 planeClip;	
+
 void main(void)
 {
 	// calculate position
@@ -63,10 +71,23 @@ void main(void)
 	// calculate tangent local system transformation
 	vec3 tangent = normalize(mat3(matrixModelView) * aTangent);
 	vec3 biTangent = normalize(mat3(matrixModelView) * aBiTangent);
+	//tangent = normalize(tangent - dot(tangent, normal) * normal); // Gramm-Schmidt process
+	//vec3 biTangent = cross(normal, tangent);
+
 	matrixTangent = mat3(tangent, biTangent, normal);
+
+
+
+
+
+
 
 	// calculate texture coordinate //just to provide vertexes to fragment shader
 	texCoord0 = aTexCoord;
+
+	// calculate shadow coordinate – using the Shadow Matrix
+	mat4 matrixModel = inverse(shadowCameraView) * matrixModelView;
+	shadowCoord = matrixShadow * matrixModel * vec4(aVertex, 1);
 
 	//fog
 	fogFactor = exp2(-fogDensity * length(position));
@@ -75,4 +96,13 @@ void main(void)
 	color = vec4(0, 0, 0, 1);
 
 	color += AmbientLight(lightAmbient);
+
+
+
+
+
+	
+	//water reflection
+	// setup the clip distance
+	gl_ClipDistance[0] = dot(inverse(matrixView) * position, planeClip);
 }

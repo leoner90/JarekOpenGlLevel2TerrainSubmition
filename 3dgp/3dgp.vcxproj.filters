@@ -26,13 +26,45 @@
     </None>
     <None Include="shaders\basic.frag.shader" />
     <None Include="shaders\basic.vert.shader" />
+    <None Include="shaders\effect.frag.shader" />
+    <None Include="shaders\effect.vert.shader" />
+    <None Include="shaders\water.frag.shader" />
+    <None Include="shaders\water.vert.shader" />
+    <None Include="shaders\terrain.frag.shader" />
+    <None Include="shaders\terrain.vert.shader" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="globalVar.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="InitFun.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="LightAndSkyBox.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="keyboardAndMouseActions.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="shaders\readme.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="InitFun.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="globalVar.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LightAndSkyBox.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="keyboardAndMouseActions.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

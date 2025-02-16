@@ -173,6 +173,12 @@
     <None Include="shaders\basic.frag.shader" />
     <None Include="shaders\basic.vert" />
     <None Include="shaders\basic.vert.shader" />
+    <None Include="shaders\effect.frag.shader" />
+    <None Include="shaders\effect.vert.shader" />
+    <None Include="shaders\terrain.frag.shader" />
+    <None Include="shaders\terrain.vert.shader" />
+    <None Include="shaders\water.frag.shader" />
+    <None Include="shaders\water.vert.shader" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="3dgl\3dgl.vcxproj">
@@ -180,10 +186,20 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="globalVar.cpp" />
+    <ClCompile Include="InitFun.cpp" />
+    <ClCompile Include="keyboardAndMouseActions.cpp" />
+    <ClCompile Include="LightAndSkyBox.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="shaders\readme.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="globalVar.h" />
+    <ClInclude Include="InitFun.h" />
+    <ClInclude Include="keyboardAndMouseActions.h" />
+    <ClInclude Include="LightAndSkyBox.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -15,6 +15,7 @@ in vec4 position;
 // Matrices
 uniform mat4 matrixView;
 
+
 // Materials - can be one material instead of 3 
 uniform vec3 materialDiffuse;
 uniform vec3 materialSpecular;
@@ -92,12 +93,18 @@ vec4 PointLight(POINT light)
 	return color * att;
 }
 
+//shadow
+in vec4 shadowCoord;
+uniform sampler2DShadow shadowMap;
+
 void main(void) 
 {
 	//new Normal Map
 	normal = 2.0 * texture(textureNormal, texCoord0).xyz - vec3(1.0, 1.0, 1.0);
 	normal = normalize(matrixTangent * normal);
+	
 
+ 
 	outColor = color;
 	// for fragment light
 	outColor += PointLight(lightPoint);
@@ -110,11 +117,19 @@ void main(void)
 	outColor += PointLight(lightPoint8);
 	outColor += PointLight(lightPoint9);
 	outColor += PointLight(lightPoint10);
+
 	outColor += DirectionalLight(lightDir);
+
+	// Calculation of the shadow
+	float shadow = 1.0;
+	if (shadowCoord.w > 0) // if shadowCoord.w < 0 fragment is out of the Light POV
+		shadow = 0.5 + 0.5 * textureProj(shadowMap, shadowCoord);
+
+	// outColor *= shadow;
 
 	//texture multyplier
 	outColor *= texture(texture0, texCoord0);
-  
+
   //fog
 	outColor = mix(vec4(fogColour, 1), outColor, fogFactor);
 }
