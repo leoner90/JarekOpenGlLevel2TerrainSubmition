@@ -31,8 +31,6 @@ vec4 AmbientLight(AMBIENT light)
 }
 
 
-
-
 out float reflFactor;
 
 uniform float t;
@@ -48,7 +46,8 @@ float wave(float A, float x, float y, float t)
 	pow(sin(2.0 * (x * 0.8 + y * 0.2) + t * 1.1), 2));
 }
 
-
+//water reflection
+uniform vec4 planeClip;	
 
 void main(void) 
 {
@@ -67,6 +66,8 @@ void main(void)
 	position = matrixModelView * vec4(newVertex, 1.0);
 	gl_Position = matrixProjection * position;
 
+	// setup the clip distance
+	gl_ClipDistance[0] = dot(inverse(matrixView) * position, planeClip);
 
 	// calculate normal
 	normal = normalize(mat3(matrixModelView) * newNormal);
@@ -74,11 +75,12 @@ void main(void)
 	// calculate texture coordinate
 	texCoord0 = aTexCoord;
 
-		// calculate reflection coefficient
+	// calculate reflection coefficient
 	// using Schlick's approximation of Fresnel formula
 	float cosTheta = dot(normal, normalize(-position.xyz));
 	float R0 = 0.02;
 	reflFactor = R0 + (1 - R0) * pow(1.0 - cosTheta, 5);
+
 	// calculate light
 	color = vec4(0, 0, 0, 1);
 	color += AmbientLight(lightAmbient);

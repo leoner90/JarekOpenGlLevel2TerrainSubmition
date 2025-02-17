@@ -64,6 +64,12 @@ void main(void)
 	position = matrixModelView * vec4(aVertex, 1.0);
 	gl_Position = matrixProjection * position;
 
+
+		//water reflection
+	// setup the clip distance
+	gl_ClipDistance[0] = dot(inverse(matrixView) * position, planeClip);
+
+
 	//don't want 4D transformation matrix to transform normals – or any other direction vectors! so mat3
 	normal = normalize(mat3(matrixModelView) * aNormal);
 
@@ -75,11 +81,6 @@ void main(void)
 	//vec3 biTangent = cross(normal, tangent);
 
 	matrixTangent = mat3(tangent, biTangent, normal);
-
-
-
-
-
 
 
 	// calculate texture coordinate //just to provide vertexes to fragment shader
@@ -100,9 +101,4 @@ void main(void)
 
 
 
-
-	
-	//water reflection
-	// setup the clip distance
-	gl_ClipDistance[0] = dot(inverse(matrixView) * position, planeClip);
 }

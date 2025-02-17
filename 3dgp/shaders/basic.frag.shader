@@ -104,6 +104,7 @@ void main(void)
 	normal = normalize(matrixTangent * normal);
 	
 
+
  
 	outColor = color;
 	// for fragment light
@@ -125,7 +126,7 @@ void main(void)
 	if (shadowCoord.w > 0) // if shadowCoord.w < 0 fragment is out of the Light POV
 		shadow = 0.5 + 0.5 * textureProj(shadowMap, shadowCoord);
 
-	// outColor *= shadow;
+	 outColor *= shadow;
 
 	//texture multyplier
 	outColor *= texture(texture0, texCoord0);

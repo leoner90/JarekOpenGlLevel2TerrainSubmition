@@ -18,8 +18,6 @@ in float reflFactor;
 
 void main(void) 
 {
-
-
 	//outColor = color;
-	outColor = mix(vec4(waterColor, 0.2)  , vec4(skyColor,1)   , reflFactor);
+	outColor = mix(vec4(waterColor, 0.2)  , vec4(skyColor, 1)   , reflFactor);
 }

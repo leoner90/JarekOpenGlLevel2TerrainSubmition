@@ -59,12 +59,19 @@ vec4 DirectionalLight(DIRECTIONAL light)
 //fog
 out float fogFactor;
 
+//water reflection
+uniform vec4 planeClip;	
+
 
 void main(void) 
 {
 	// calculate position
 	position = matrixModelView * vec4(aVertex, 1.0);
 	gl_Position = matrixProjection * position;
+
+	//water reflection
+	// setup the clip distance
+	gl_ClipDistance[0] = dot(inverse(matrixView) * position, planeClip);
 
 	// calculate normal
 	normal = normalize(mat3(matrixModelView) * aNormal);

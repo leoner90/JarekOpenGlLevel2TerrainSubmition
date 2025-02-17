@@ -22,8 +22,10 @@ const vec3 sepia = vec3(1.2, 1.0, 0.8);
 void main(void)
 
 {
-outColor = texture(texture0, texCoord0); // reset just use this
+ 
 
+
+	
 // Vignette
 // Find centre position
 vec2 centre = (gl_FragCoord.xy / resolution.xy) - vec2(0.5);
@@ -47,10 +49,13 @@ float gray = dot(outColor.rgb, lum);
 outColor.rgb = mix(outColor.rgb, vec3(gray) * sepia, 0.75);
 
 
+
+	
 //NEGATIVE
 outColor = vec4(1, 1, 1, 1) - texture(texture0, texCoord0);
 
+//RESET
+outColor = texture(texture0, texCoord0); // reset just use this
 
-	//RESET
-	outColor = texture(texture0, texCoord0); // reset just use this
+
 }
