@@ -25,13 +25,13 @@ bool waterInit()
 
 	// setup the water colours and level
 	programWater.sendUniform("waterColor", vec3(0.2f, 0.2f, 0.34f));
-	programWater.sendUniform("skyColor", vec3(0.2f, 0.6f, 1.f));
+	//programWater.sendUniform("skyColor", vec3(0.2f, 0.6f, 1.f));
 	programTerrain.sendUniform("waterColor", vec3(0.2f, 0.2f, 0.34f));
 	programTerrain.sendUniform("waterLevel", waterLevel);
 
 
 	// setup the textures
-	if (!TextureSetup("models/grass.png", idTexSand, 0))
+	if (!TextureSetup("models/grass.png", idTexSand, 1))
 		return false;
 	if (!TextureSetup("models/pebbles.png", idTexGrass, 0))
 		return false;
@@ -39,7 +39,7 @@ bool waterInit()
 
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, idTexSand);
-	programTerrain.sendUniform("textureBed", 0);
+	programTerrain.sendUniform("textureBed", 1);
 
 	glActiveTexture(GL_TEXTURE4);
 	glBindTexture(GL_TEXTURE_2D, idTexGrass);
@@ -47,10 +47,6 @@ bool waterInit()
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-
-
-
 }
 
 
@@ -150,8 +146,8 @@ bool init()
 		vec3(0.0, 1.0, 0.0));
 
 
-	//shadowMapInit();
-//	PostProcessInit();
+	shadowMapInit();
+	//PostProcessInit();
 	waterInit();
 
 

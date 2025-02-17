@@ -52,19 +52,15 @@ void renderScene(mat4& matrixView, float time, float deltaTime)
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, idTexRoad);
  
-	road.render(setMatrix({ 0.f, 0.2f, 0.f }, 0.f, { 0.0f, 1.0f, 0.0f }, { 1.f,  1.f ,  1.f }, { 1.f, 1.f, 1.f }));
+	 road.render(setMatrix({ 0.f, 0.2f, 0.f }, 0.f, { 0.0f, 1.0f, 0.0f }, { 1.f,  1.f ,  1.f }, { 1.f, 1.f, 1.f }));
 
-
-
-
+	 
 	//WATER
 	programTerrain.use();
- 
-
 	mat4 m;
 	m = matrixView;
 	iceWater.render(m);
-
+	
 	// render the water
 	programWater.use();
  
@@ -73,13 +69,11 @@ void renderScene(mat4& matrixView, float time, float deltaTime)
 	m = scale(m, vec3(1.f, 1.0f, 1.f));
 	programWater.sendUniform("matrixModelView", m);
 	water.render(m);
-
-
+	 
+	program.use();
  
 
-	program.use();
-
-
+	
 
 	//STREET LAMPS
 	streetLampFun(5.5f, 13.4f, -14.f, "lightPoint.position", "lightPoint.diffuse", "lightPoint.specular", AreLeftLampsOff);
@@ -112,7 +106,7 @@ void createShadowMap(mat4 lightTransform, float time, float deltaTime)
 
 	// setup the viewport to 2x2 the original and wide (120 degrees) FoV (Field of View)
 	glViewport(0, 0, w * 2, h * 2);
-	mat4 matrixProjection = perspective(radians(160.f), (float)w / (float)h, 0.5f, 50.0f);
+	mat4 matrixProjection = perspective(radians(60.f), (float)w / (float)h, 0.5f, 50.0f);
 	program.sendUniform("matrixProjection", matrixProjection);
 
 	// prepare the camera
@@ -182,6 +176,61 @@ void PostProcesing()
 
 }
 
+void planarReflection(mat4& matrixView, float time, float deltaTime)
+{
+	// Prepare the stencil test
+	glEnable(GL_STENCIL_TEST);
+	glStencilFunc(GL_ALWAYS, 1, 1);
+	glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);
+
+	// Disable screen rendering
+	glDisable(GL_DEPTH_TEST);
+	glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+
+	//WATER
+	programWater.use();
+	mat4 m;
+	m = matrixView;
+	m = translate(m, vec3(0, waterLevel, 0));
+	m = scale(m, vec3(1.f, 1.0f, 1.f));
+	programWater.sendUniform("matrixModelView", m);
+	water.render(m);
+	matrixView *= matrixReflection;
+	program.sendUniform("matrixView", matrixView);
+	programWater.sendUniform("matrixView", matrixView);
+	programTerrain.sendUniform("matrixView", matrixView);
+
+
+	// Use stencil test
+	glStencilFunc(GL_EQUAL, 1, 1);
+	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+
+	// Enable screen rendering
+	glEnable(GL_DEPTH_TEST);
+	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+
+ 
+	// Enable clipping plane
+	glEnable(GL_CLIP_PLANE0);
+	//clipping
+	programWater.sendUniform("planeClip", vec4(a, b, c, d));
+	program.sendUniform("planeClip", vec4(a, b, c, d));
+	programTerrain.sendUniform("planeClip", vec4(a, b, c, d));
+	renderScene(matrixView, time, deltaTime); // render the scene objects
+	 
+
+
+
+	// disable stencil test and clip plane
+	glDisable(GL_STENCIL_TEST);
+	glDisable(GL_CLIP_PLANE0);
+	matrixView *= matrixReflection;
+
+	
+
+
+}
+
 //*********** RENDER GLUT ***********
 void onRender()
 {
@@ -192,79 +241,24 @@ void onRender()
 	prev = time;		// framerate is 1/deltaTime
 	programWater.sendUniform("t", time);
 
-	//reflection
-	// Render the scene with the reflected camera onRender
-	matrixView *= matrixReflection;
-	program.sendUniform("matrixView", matrixView);
-	renderScene(matrixView, time, deltaTime);
-
-
-	//clipping
-	program.sendUniform("planeClip", vec4(a, b, c, d));
-
-	//glEnable(GL_CLIP_PLANE0);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
-	// Prepare the stencil test
-	glEnable(GL_STENCIL_TEST);
-	glStencilFunc(GL_ALWAYS, 1, 1);
-	glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);
-	// Disable screen rendering
-	glDisable(GL_DEPTH_TEST);
-	glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-	//WATER
-
-	// render the water
-
-	// render the water
-	programWater.use();
-	mat4 m;
-	m = matrixView;
-	m = translate(m, vec3(0, waterLevel, 0));
-	m = scale(m, vec3(1.f, 1.0f, 1.f));
-	programWater.sendUniform("matrixModelView", m);
-	water.render(m);
-	program.use();
-
-	// Use stencil test
-	glStencilFunc(GL_EQUAL, 1, 1);
-	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-
-	// Enable screen rendering
-	glEnable(GL_DEPTH_TEST);
-	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-
-	// Enable clipping plane
-	glEnable(GL_CLIP_PLANE0);
-
-	// disable stencil test and clip plane
-	glDisable(GL_STENCIL_TEST);
-	glDisable(GL_CLIP_PLANE0);
-
-
-
-	// Revert to the regular camera
-	matrixView *= matrixReflection;
-	program.sendUniform("matrixView", matrixView);
-
-
-
-	/*SHADOW MAP CREATION
+	//SHADOW MAP CREATION
 	createShadowMap(lookAt
 	(
-		vec3(5.5f, 3.4f, -14.f), // coordinates of the source of the light
+		vec3(5.5f, 5.4f, -14.f), // coordinates of the source of the light
 		vec3(0.0f, -3.0f, 0.0f), // coordinates of a point within or behind the scene
 		vec3(0.0f, 1.f, 0.0f)), // a reasonable "Up" vector
 		time, deltaTime
 	);
 
-
 	// Pass 1: off-screen rendering POST PROC
-	glBindFramebufferEXT(GL_FRAMEBUFFER, idFBOPostProc);
-	*/
+	//glBindFramebufferEXT(GL_FRAMEBUFFER, idFBOPostProc);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-	// clear screen and buffers
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+
+
+	
+	 
 
 	// setup the View Matrix (camera)
 	_vel = clamp(_vel + _acc * deltaTime, -vec3(maxspeed), vec3(maxspeed));
@@ -279,30 +273,30 @@ void onRender()
 	float terrainY = -terrain.getInterpolatedHeight(inverse(matrixView)[3][0], inverse(matrixView)[3][2]);
 	matrixView = translate(matrixView, vec3(0, terrainY, 0));
 
- 
-	//SHOW POS ON THE MAP!!!!!!!!!!!!!!!!!!!!!!
-	cout << inverse(matrixView)[3][0] << "       " << terrainY << "       " << inverse(matrixView)[3][2] << endl;
-
- 
-	// setup View Matrix
-	 program.sendUniform("matrixView", matrixView);
-	 programTerrain.sendUniform("matrixView", matrixView);
-	 programWater.sendUniform("matrixView", matrixView);
-
-	renderScene(matrixView, time, deltaTime); // render the scene objects
-
 	// the camera must be moved down by terrainY to avoid unwanted effects
 	matrixView = translate(matrixView, vec3(0, -terrainY, 0));
+ 
 
 
 
 
+	planarReflection(matrixView, time, deltaTime);
+
+	// setup View Matrix
+	program.sendUniform("matrixView", matrixView);
+	programTerrain.sendUniform("matrixView", matrixView);
+	programWater.sendUniform("matrixView", matrixView);
+	renderScene(matrixView, time, deltaTime); // render the scene objects
+ 
 	//POST PROCESING
-	// PostProcesing();
+	//PostProcesing();
 
 	//______________
 	glutSwapBuffers(); 	// essential for double-buffering technique
 	glutPostRedisplay();// proceed the animation
+
+	//SHOW POS ON THE MAP!!!!!!!!!!!!!!!!!!!!!!
+	//cout << inverse(matrixView)[3][0] << "       " << terrainY << "       " << inverse(matrixView)[3][2] << endl;
 }
 
 

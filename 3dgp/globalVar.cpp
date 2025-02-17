@@ -81,10 +81,8 @@ float waterLevel = 6.2;
 //WATER REFLECTION
 // 
 // Find the reflection surface (point and normal) rotation of the entire mirror around the Y axis (ry) and swivel of the mirror around the X axis (rx)
-vec3 p(-13.3f, -10.53f, 85.5f);
+vec3 p(0, waterLevel , 0);
 vec3 n = vec3(0, 1, 0);
-
-
 
 // reflection matrix
 float a = n.x, b = n.y, c = n.z, d = -dot(p, n);

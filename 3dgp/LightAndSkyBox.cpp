@@ -183,13 +183,11 @@ void streetLampFun(float x, float y, float z, string shaderNamePos, string shade
 	program.sendUniform("matrixModelView", m);
 
 	//Mat
-	program.sendUniform("materialAmbient", vec3(21.f, 21.f, 21.1f));
+	program.sendUniform("materialAmbient", vec3(1.f, 1.f, 1.1f));
 	program.sendUniform("materialDiffuse", vec3((1.f, 1.f, 1.f)));
 
 	//render bulb
-
-
-
+	glutSolidSphere(1, 32, 32);
 
 	//reset Ambient Light And redner StreetLamp
 	program.sendUniform("lightAmbient.color", vec3(1.1, 1.1, 1.1));
