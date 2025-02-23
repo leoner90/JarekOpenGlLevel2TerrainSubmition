@@ -50,7 +50,6 @@ float _fov = 60.f;
 C3dglProgram program;
 C3dglProgram programEffect;
 C3dglProgram programWater;
-C3dglProgram programTerrain;
 
 // Day/Night Regime
 bool isItNight = false;

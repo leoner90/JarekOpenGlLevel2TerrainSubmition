@@ -66,7 +66,7 @@ extern float _fov;
 extern C3dglProgram program;
 extern C3dglProgram programEffect;
 extern C3dglProgram programWater;
-extern C3dglProgram programTerrain;
+
 
 // Day/Night Regime
 extern bool isItNight;

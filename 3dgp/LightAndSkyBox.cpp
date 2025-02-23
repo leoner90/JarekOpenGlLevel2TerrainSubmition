@@ -52,12 +52,11 @@ void Directional()
 
 	//Directional Light
 	program.sendUniform("lightDir.direction", vec3(lightX, lightY, 0));
-	programTerrain.sendUniform("lightDir.direction", vec3(lightX, lightY, 0));
 
 	DlightDirection = vec3(lightX, lightY, 0);
 
 	program.sendUniform("lightDir.diffuse", vec3(diffuseColor, diffuseColor, diffuseColor)); // set "lightDir.diffuse", vec3(0.0, 0.0, 0.0) to switch off
-	programTerrain.sendUniform("lightDir.diffuse", vec3(diffuseColor, diffuseColor, diffuseColor));
+
 
 	//Specular reflection
 	program.sendUniform("lightDir.specular", vec3(0.5f, 0.5f, 0.5f));
@@ -69,12 +68,11 @@ void Directional()
 void AmbientLight()
 {
 	program.sendUniform("lightAmbient.color", vec3(0.3, 0.3, 0.33));
-	programTerrain.sendUniform("lightAmbient.color", vec3(0.3, 0.3, 0.33));
 	programWater.sendUniform("lightAmbient.color", vec3(0.3, 0.3, 0.33));
 }
 
 //SKYBOX 
-void SkyBoxAndDayCalculation()
+void SkyBoxAndDayCalculation(bool isReflected)
 {
 	//FRAME TIME!!!!!!!!!!!!!! delta 
 	//directionlight off ambient like TO THE MAX , small sky box  moves with  a player , render skybox first
@@ -124,6 +122,8 @@ void SkyBoxAndDayCalculation()
 	mat4 m = matrixView;
 	m = rotate(m, radians(DayRotationAngle), { 0,1,0 });
 
+	if (isReflected)
+		m = rotate(m, radians(180.f), vec3(0.f, 0.f, 1.f));
 
 	if (isItNight)
 	{

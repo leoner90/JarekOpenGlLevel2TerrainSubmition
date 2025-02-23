@@ -20,7 +20,7 @@ void renderScene(mat4& matrixView, float time, float deltaTime)
 {
 
 	CalcCurrentDayTime();
-	SkyBoxAndDayCalculation();
+	//SkyBoxAndDayCalculation();
 	Directional();
 	AmbientLight();
 
@@ -52,25 +52,10 @@ void renderScene(mat4& matrixView, float time, float deltaTime)
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, idTexRoad);
  
-	 road.render(setMatrix({ 0.f, 0.2f, 0.f }, 0.f, { 0.0f, 1.0f, 0.0f }, { 1.f,  1.f ,  1.f }, { 1.f, 1.f, 1.f }));
+	road.render(setMatrix({ 0.f, 0.2f, 0.f }, 0.f, { 0.0f, 1.0f, 0.0f }, { 1.f,  1.f ,  1.f }, { 1.f, 1.f, 1.f }));
 
 	 
-	//WATER
-	programTerrain.use();
-	mat4 m;
-	m = matrixView;
-	iceWater.render(m);
-	
-	// render the water
-	programWater.use();
- 
-	m = matrixView;
-	m = translate(m, vec3(0, waterLevel, 0));
-	m = scale(m, vec3(1.f, 1.0f, 1.f));
-	programWater.sendUniform("matrixModelView", m);
-	water.render(m);
-	 
-	program.use();
+
  
 
 	
@@ -176,58 +161,81 @@ void PostProcesing()
 
 }
 
+
 void planarReflection(mat4& matrixView, float time, float deltaTime)
 {
-	// Prepare the stencil test
+
+
+	// Enable stencil test for reflection
 	glEnable(GL_STENCIL_TEST);
 	glStencilFunc(GL_ALWAYS, 1, 1);
 	glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);
 
-	// Disable screen rendering
 	glDisable(GL_DEPTH_TEST);
 	glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 
-	//WATER
 	programWater.use();
-	mat4 m;
-	m = matrixView;
+
+	mat4 m = matrixView;
 	m = translate(m, vec3(0, waterLevel, 0));
 	m = scale(m, vec3(1.f, 1.0f, 1.f));
 	programWater.sendUniform("matrixModelView", m);
 	water.render(m);
-	matrixView *= matrixReflection;
-	program.sendUniform("matrixView", matrixView);
-	programWater.sendUniform("matrixView", matrixView);
-	programTerrain.sendUniform("matrixView", matrixView);
 
+	program.use();
 
-	// Use stencil test
 	glStencilFunc(GL_EQUAL, 1, 1);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
-	// Enable screen rendering
 	glEnable(GL_DEPTH_TEST);
 	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
- 
-	// Enable clipping plane
+
+	//SKYBOX
+	m = matrixView;
+	m = rotate(m, radians(180.f), vec3(0.f, 0.f, 1.f));
+	m = rotate(m, radians(time), vec3(0.f, 1.f, 0.f));
+
+	program.sendUniform("lightAmbient.color", vec3(3.05, 3.05, 3.05));
+	program.sendUniform("materialDiffuse", vec3(0, 0, 0));
+
+	//glDisable(GL_DEPTH_TEST);
+	//glDepthMask(GL_FALSE); // Prevent depth writes
+	//glDisable(GL_BLEND);
+	SkyBoxAndDayCalculation(true);
+
+	//glDepthMask(GL_TRUE);
+	// 
+	//glEnable(GL_DEPTH_TEST);
+
+
+
+
+
 	glEnable(GL_CLIP_PLANE0);
-	//clipping
-	programWater.sendUniform("planeClip", vec4(a, b, c, d));
-	program.sendUniform("planeClip", vec4(a, b, c, d));
-	programTerrain.sendUniform("planeClip", vec4(a, b, c, d));
-	renderScene(matrixView, time, deltaTime); // render the scene objects
-	 
+	vec4 planeClip = vec4(a, b, c, d);
+	program.sendUniform("planeClip", planeClip);
+	mat4 testmatrixView = matrixView * matrixReflection;
+	renderScene(testmatrixView, time, deltaTime);
 
-
-
-	// disable stencil test and clip plane
-	glDisable(GL_STENCIL_TEST);
 	glDisable(GL_CLIP_PLANE0);
-	matrixView *= matrixReflection;
+	glDisable(GL_STENCIL_TEST);
+}
 
-	
 
+void PlanareReflectioOringBaseRender()
+{
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	programWater.use();
+
+	mat4 m = matrixView;
+	m = translate(m, vec3(0, waterLevel, 0));
+	m = scale(m, vec3(1.f, 1.0f, 1.f));
+	programWater.sendUniform("matrixModelView", m);
+	water.render(m);
+	glDisable(GL_BLEND);
+	program.use();
 
 }
 
@@ -241,7 +249,7 @@ void onRender()
 	prev = time;		// framerate is 1/deltaTime
 	programWater.sendUniform("t", time);
 
-	//SHADOW MAP CREATION
+	/*SHADOW MAP CREATION
 	createShadowMap(lookAt
 	(
 		vec3(5.5f, 5.4f, -14.f), // coordinates of the source of the light
@@ -249,7 +257,7 @@ void onRender()
 		vec3(0.0f, 1.f, 0.0f)), // a reasonable "Up" vector
 		time, deltaTime
 	);
-
+	*/
 	// Pass 1: off-screen rendering POST PROC
 	//glBindFramebufferEXT(GL_FRAMEBUFFER, idFBOPostProc);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
@@ -270,24 +278,37 @@ void onRender()
 		* matrixView;
  
 	// move the camera up following the profile of terrain (Y coordinate of the terrain)
-	float terrainY = -terrain.getInterpolatedHeight(inverse(matrixView)[3][0], inverse(matrixView)[3][2]);
-	matrixView = translate(matrixView, vec3(0, terrainY, 0));
+	//float terrainY = -terrain.getInterpolatedHeight(inverse(matrixView)[3][0], inverse(matrixView)[3][2]);
+	//matrixView = translate(matrixView, vec3(0, terrainY, 0));
 
-	// the camera must be moved down by terrainY to avoid unwanted effects
-	matrixView = translate(matrixView, vec3(0, -terrainY, 0));
+
  
-
-
-
+	//program.sendUniform("matrixView", matrixView);
+	SkyBoxAndDayCalculation();
 
 	planarReflection(matrixView, time, deltaTime);
 
-	// setup View Matrix
-	program.sendUniform("matrixView", matrixView);
-	programTerrain.sendUniform("matrixView", matrixView);
-	programWater.sendUniform("matrixView", matrixView);
-	renderScene(matrixView, time, deltaTime); // render the scene objects
- 
+	// Enable stencil test for reflection
+	glEnable(GL_STENCIL_TEST);
+		glStencilFunc(GL_ALWAYS, 1, 1);
+		glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);
+		glEnable(GL_CLIP_PLANE0);
+			vec4 planeClip = vec4(a, b, c, d);
+			program.sendUniform("planeClip", planeClip);
+			program.sendUniform("matrixView", matrixView);
+			renderScene(matrixView, time, deltaTime);
+			// the camera must be moved down by terrainY to avoid unwanted effects
+			//matrixView = translate(matrixView, vec3(0, -terrainY, 0));
+		glDisable(GL_CLIP_PLANE0);
+	glDisable(GL_STENCIL_TEST);
+
+	PlanareReflectioOringBaseRender();
+
+
+
+
+	// the camera must be moved down by terrainY to avoid unwanted effects
+	//matrixView = translate(matrixView, vec3(0, -terrainY, 0));
 	//POST PROCESING
 	//PostProcesing();
 

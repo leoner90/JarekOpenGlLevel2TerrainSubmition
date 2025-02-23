@@ -13,40 +13,16 @@ bool shadersInit();
 bool waterInit()
 {
 	// load your 3D models here!
-	programTerrain.use();
-	if (!water.load("models\\terrain\\waterMap2.jpg", 25, &programWater)) return false;
-	if (!iceWater.load("models\\terrain\\iceWater.jpg", 25)) return false;
- 
-	// setup materials  and light
-	programTerrain.sendUniform("materialAmbient", vec3(1.0, 1.0, 1.0));
-	programWater.sendUniform("materialAmbient", vec3(1.0, 1.0, 1.0));
-	programTerrain.sendUniform("materialDiffuse", vec3(1.0, 1.0, 1.0));
 
+	if (!water.load("models\\terrain\\waterMap2.jpg", 25, &programWater)) return false;
+
+	// setup materials  and light
+	programWater.sendUniform("materialAmbient", vec3(1.0, 1.0, 1.0));
 
 	// setup the water colours and level
 	programWater.sendUniform("waterColor", vec3(0.2f, 0.2f, 0.34f));
-	//programWater.sendUniform("skyColor", vec3(0.2f, 0.6f, 1.f));
-	programTerrain.sendUniform("waterColor", vec3(0.2f, 0.2f, 0.34f));
-	programTerrain.sendUniform("waterLevel", waterLevel);
+	programWater.sendUniform("skyColor", vec3(0.2f, 0.6f, 1.f));
 
-
-	// setup the textures
-	if (!TextureSetup("models/grass.png", idTexSand, 1))
-		return false;
-	if (!TextureSetup("models/pebbles.png", idTexGrass, 0))
-		return false;
-
-
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, idTexSand);
-	programTerrain.sendUniform("textureBed", 1);
-
-	glActiveTexture(GL_TEXTURE4);
-	glBindTexture(GL_TEXTURE_2D, idTexGrass);
-	programTerrain.sendUniform("textureShore", 0);
-
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 
@@ -57,8 +33,7 @@ bool init()
 	// glut additional setup
 	glutSetVertexAttribCoord3(program.getAttribLocation("aVertex"));
 	glutSetVertexAttribNormal(program.getAttribLocation("aNormal"));
-	glutSetVertexAttribCoord3(programTerrain.getAttribLocation("aVertex"));
-	glutSetVertexAttribNormal(programTerrain.getAttribLocation("aNormal"));
+
 
 	// rendering states
 	glEnable(GL_DEPTH_TEST);	// depth test is necessary for most 3D scenes
@@ -69,6 +44,7 @@ bool init()
 	// load your 3D models here!
 	if (!terrain.load("models\\terrain\\worldHM.jpg", 25)) return false;
 	if (!road.load("models\\terrain\\roadHM.png", 25)) return false;
+	if (!iceWater.load("models\\terrain\\iceWater.jpg", 25)) return false;
 
 	
 
@@ -141,12 +117,12 @@ bool init()
 	// Initialise the View Matrix (initial position of the camera)
 	matrixView = rotate(mat4(1), radians(12.f), vec3(1, 0, 0));
 	matrixView *= lookAt(
-		vec3(4.0, 1.5, 5.0),
-		vec3(4.0, 1.5, 0.0),
+		vec3(4.0, 10.5, 11.0),
+		vec3(4.0, 10.5, 0.0),
 		vec3(0.0, 1.0, 0.0));
 
 
-	shadowMapInit();
+	//shadowMapInit();
 	//PostProcessInit();
 	waterInit();
 
@@ -375,11 +351,6 @@ bool shadersInit()
 	if (!terrainFragmentShader.loadFromFile("shaders/terrain.frag.shader")) return false;
 	if (!terrainFragmentShader.compile()) return false;
 
-	if (!programTerrain.create()) return false;
-	if (!programTerrain.attach(terrainVertexShader)) return false;
-	if (!programTerrain.attach(terrainFragmentShader)) return false;
-	if (!programTerrain.link()) return false;
-	//if (!programTerrain.use(true)) return false;
 
 	return true;
 }

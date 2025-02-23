@@ -12,7 +12,6 @@ void onReshape(int w, int h)
 
 	// Setup the Projection Matrix
 	program.sendUniform("matrixProjection", matrixProjection);
-	programTerrain.sendUniform("matrixProjection", matrixProjection);
 	programWater.sendUniform("matrixProjection", matrixProjection);
 }
 
