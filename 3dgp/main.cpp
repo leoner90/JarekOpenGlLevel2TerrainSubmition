@@ -18,7 +18,8 @@
 //*********** RENDER SCENE ***********
 void renderScene(mat4& matrixView, float time, float deltaTime)
 {
-
+	program.sendUniform("matrixView", matrixView);
+	program.sendUniform("matrixView", matrixView);
 	CalcCurrentDayTime();
 	//SkyBoxAndDayCalculation();
 	Directional();
@@ -203,7 +204,8 @@ void planarReflection(mat4& matrixView, float time, float deltaTime)
 	//glDepthMask(GL_FALSE); // Prevent depth writes
 	//glDisable(GL_BLEND);
 	SkyBoxAndDayCalculation(true);
-
+		program.sendUniform("matrixView", matrixView);
+	program.sendUniform("matrixView", matrixView);
 	//glDepthMask(GL_TRUE);
 	// 
 	//glEnable(GL_DEPTH_TEST);
@@ -215,11 +217,13 @@ void planarReflection(mat4& matrixView, float time, float deltaTime)
 	glEnable(GL_CLIP_PLANE0);
 	vec4 planeClip = vec4(a, b, c, d);
 	program.sendUniform("planeClip", planeClip);
-	mat4 testmatrixView = matrixView * matrixReflection;
-	renderScene(testmatrixView, time, deltaTime);
+	matrixView *=   matrixReflection;
+	renderScene(matrixView, time, deltaTime);
 
 	glDisable(GL_CLIP_PLANE0);
 	glDisable(GL_STENCIL_TEST);
+
+	matrixView *= matrixReflection;
 }
 
 
