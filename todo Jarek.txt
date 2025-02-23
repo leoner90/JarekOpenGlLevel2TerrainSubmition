@@ -1,0 +1,30 @@
+try to fix issue with camera
+if no test clasic stansil with sky box 
+add it to main programm
+
+
+
+LVL2
+water
+water reflection
+shadow map
+post processing
+
+
+
+
+
+
+LVL3
+animated light two on start
+characeters rigged body
+
+particles snow
+bonfire
+
+Add ice peices into the water
+
+gamePlay sledding, NPC,  start the game solution btn,  Enemy players ,upravlenie sankami, win/fail/restart!
+
+optional waterfall Animated Textures
+
